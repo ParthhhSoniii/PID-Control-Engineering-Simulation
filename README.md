@@ -271,6 +271,12 @@ If your `requirements.txt` pins compatible versions, use:
 python -m pip install -r requirements.txt
 ```
 
+Run the Below Command to Interact with UI based PID Concepts:
+
+```bash
+python app.py
+```
+
 Run from the project root so imports such as `from src...` resolve:
 
 ```bash
