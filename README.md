@@ -4,15 +4,32 @@ A from-scratch Python implementation and experiment suite for studying PID contr
 mass–spring–damper plant. The project uses **NumPy** and **Matplotlib** and implements
 the PID logic directly rather than using a ready-made control library.
 
-## Project objectives
+## Setup
 
-- Explain closed-loop feedback and the P, I and D terms.
-- Simulate a 1 kg mass–spring–damper system with `c = 10 N·s/m`, `k = 20 N/m`, and a 1 m target.
-- Compare P, PI, PD and PID controller behaviour.
-- Evaluate rise time, overshoot, settling time and steady-state error.
-- Investigate actuator saturation and integral windup, sensor noise, derivative kick and slow controller updates.
-- Demonstrate manual tuning and Ziegler–Nichols tuning on `G(s) = 1/(s+1)^3`.
-- Recreate the figures using the experiment scripts and shared plotting module.
+```bash
+python3 -m venv PID_venv
+source PID_venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install numpy==1.26.4 matplotlib
+```
+
+If your `requirements.txt` pins compatible versions, use:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Run the Below Command to Interact with UI based PID Concepts:
+
+```bash
+python app.py
+```
+
+Run from the project root so imports such as `from src...` resolve:
+
+```bash
+python -m experiments.02_p_only
+```
 
 ## Project structure
 
@@ -60,6 +77,16 @@ Modern_MonkLabs_Assignment/
 > development. Some output folders are created only after running their experiment.
 > Keep the names in your local checkout if they differ from this illustrative tree.
 
+## Project objectives
+
+- Explain closed-loop feedback and the P, I and D terms.
+- Simulate a 1 kg mass–spring–damper system with `c = 10 N·s/m`, `k = 20 N/m`, and a 1 m target.
+- Compare P, PI, PD and PID controller behaviour.
+- Evaluate rise time, overshoot, settling time and steady-state error.
+- Investigate actuator saturation and integral windup, sensor noise, derivative kick and slow controller updates.
+- Demonstrate manual tuning and Ziegler–Nichols tuning on `G(s) = 1/(s+1)^3`.
+- Recreate the figures using the experiment scripts and shared plotting module.
+  
 ## Architecture
 
 ```text
@@ -255,33 +282,6 @@ Run commands from the repository root.
 If a numeric-leading module filename cannot be imported in your Python environment, run the
 script path from the repository root or rename it to a valid module name (for example
 `exp_02_p_only.py`) and update the command.
-
-## Setup
-
-```bash
-python3 -m venv PID_venv
-source PID_venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install numpy==1.26.4 matplotlib
-```
-
-If your `requirements.txt` pins compatible versions, use:
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-Run the Below Command to Interact with UI based PID Concepts:
-
-```bash
-python app.py
-```
-
-Run from the project root so imports such as `from src...` resolve:
-
-```bash
-python -m experiments.02_p_only
-```
 
 ## Interpreting results
 
