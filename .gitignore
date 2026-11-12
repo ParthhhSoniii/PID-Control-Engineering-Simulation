@@ -1,0 +1,28 @@
+# Python virtual environments
+venv/
+env/
+PID_venv/
+yolov8_env/
+Drone_venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.so
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+
+# Temporary files
+*.log
+*.tmp
+
+# Environment variables and secrets
+.env

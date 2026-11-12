@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PID Control Lab | Interactive Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--bg:#f4f7fb;--panel:#fff;--ink:#172033;--muted:#667085;--line:#e5eaf2;--blue:#2563eb;--soft:#eff6ff;--shadow:0 8px 28px rgba(25,42,70,.07);--radius:16px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+header{background:#14213d;color:#fff;padding:25px max(22px,calc((100% - 1440px)/2))}header .eyebrow{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:#a9c5ff;font-weight:700}header h1{font-size:clamp(25px,4vw,36px);margin:5px 0 3px}header p{margin:0;color:#d5deed;max-width:760px}
+.wrap{max-width:1440px;margin:24px auto;padding:0 20px 40px}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+select,button{font:inherit;border-radius:10px;border:1px solid var(--line);padding:10px 13px;background:#fff;color:var(--ink)}button{cursor:pointer;font-weight:700}button.primary{background:var(--blue);border-color:var(--blue);color:#fff}.status{margin-left:auto;color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;align-items:start}.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.controls{padding:18px;position:sticky;top:14px}.panel h2{font-size:17px;margin:0 0 4px}.sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+.group{border-top:1px solid var(--line);padding:14px 0 4px}.group:first-of-type{border-top:0;padding-top:0}.group h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#526078;margin:0 0 10px}
+.control{margin:10px 0 14px}.control label{display:flex;justify-content:space-between;gap:12px;font-size:13px;font-weight:650}.control output{color:var(--blue)}input[type=range]{width:100%;accent-color:var(--blue);margin:8px 0 0}.hint{font-size:11px;color:var(--muted);margin-top:2px}
+.checkrow{display:flex;align-items:center;justify-content:space-between;font-size:13px;margin:10px 0}input[type=checkbox]{accent-color:var(--blue);width:17px;height:17px}
+.content{display:grid;gap:18px;min-width:0}.intro{padding:17px 20px;background:var(--soft);border:1px solid #d9e8ff;border-radius:var(--radius)}.intro strong{display:block;margin-bottom:3px}.intro p{margin:0;color:#40516d;font-size:13px}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.metric{padding:15px 16px}.metric .label{font-size:12px;color:var(--muted);font-weight:650}.metric .value{font-size:24px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}.metric .unit{font-size:12px;color:var(--muted);font-weight:500}
+.chartgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.chartcard{padding:16px;min-width:0}.charthead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}.charthead h3{font-size:14px;margin:0}.charthead span{font-size:11px;color:var(--muted)}.chartbox{height:245px;position:relative}
+.conclusion{padding:18px 20px}.conclusion h2{margin-bottom:10px}#conclusions{margin:0;padding-left:20px}#conclusions li{margin:7px 0;color:#344054}.badge{display:inline-block;padding:3px 8px;border-radius:99px;background:#eaf7f0;color:#16845b;font-size:11px;font-weight:750}.note{font-size:12px;color:var(--muted);margin-top:12px}.footer{font-size:12px;color:var(--muted);text-align:center;padding:16px}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}.controls{position:static}.metrics{grid-template-columns:repeat(2,1fr)}}@media(max-width:650px){.chartgrid{grid-template-columns:1fr}.wrap{padding:0 12px 28px}.metrics{gap:8px}.metric .value{font-size:20px}.status{width:100%;margin:0}}
+</style>
+</head>
+<body>
+<header><div class="eyebrow">Modern Monk Labs · Interactive learning lab</div><h1>PID Control Dashboard</h1><p>Change controller and plant parameters, run the experiment, inspect the response, and read an automatically generated engineering interpretation.</p></header>
+<main class="wrap">
+<div class="toolbar"><label for="experiment"><strong>Experiment</strong></label>
+<select id="experiment">
+<option value="open_loop">01 - Open-loop response</option>
+<option value="p">02 - P-only response</option>
+<option value="pi">03 - PI response</option>
+<option value="pid" selected>04 - PID response · Mass–spring–damper</option>
+<option value="pd">05 - PD response</option>
+<option value="saturation">06 - Actuator saturation + anti-windup</option>
+<option value="noise">07 - Position sensor noise</option>
+<option value="derivative_kick">08 - Derivative kick · Sudden setpoint change</option>
+<option value="slow_update">09 - Slow controller update frequency</option>
+<option value="zn">10 - Ziegler–Nichols · Black-box plant</option>
+</select>
+<button class="primary" id="runBtn">▶ Run simulation</button><button id="resetBtn">Reset defaults</button><span class="status" id="status">Ready · Browser simulation</span></div>
+<div class="grid">
+<aside class="panel controls"><h2>Experiment controls</h2><p class="sub">Move a slider, then run the simulation.</p>
+<section class="group"><h3>Controller gains</h3>
+<div class="control"><label for="kp">Proportional · Kp <output id="kpVal"></output></label><input id="kp" type="range" min="0" max="250" step="1" value="50"></div>
+<div class="control"><label for="ki">Integral · Ki <output id="kiVal"></output></label><input id="ki" type="range" min="0" max="200" step="1" value="20"></div>
+<div class="control"><label for="kd">Derivative · Kd <output id="kdVal"></output></label><input id="kd" type="range" min="0" max="40" step=".1" value="5"></div></section>
+<section class="group"><h3>Plant & simulation</h3>
+<div class="control"><label for="setpoint">Target position <output id="setpointVal"></output></label><input id="setpoint" type="range" min=".1" max="2" step=".05" value="1"></div>
+<div class="control"><label for="duration">Duration <output id="durationVal"></output></label><input id="duration" type="range" min="3" max="20" step="1" value="8"></div>
+<div class="control"><label for="dt">Time step <output id="dtVal"></output></label><input id="dt" type="range" min=".001" max=".02" step=".001" value=".002"></div>
+<div class="control"><label for="mass">Mass · m <output id="massVal"></output></label><input id="mass" type="range" min=".2" max="5" step=".1" value="1"></div>
+<div class="control"><label for="damping">Damping · c <output id="dampingVal"></output></label><input id="damping" type="range" min="1" max="30" step=".5" value="10"></div>
+<div class="control"><label for="spring">Spring · k <output id="springVal"></output></label><input id="spring" type="range" min="2" max="60" step="1" value="20"></div></section>
+<section class="group"><h3>Real-world effects</h3>
+<div class="control"><label for="noise">Sensor noise (± mm) <output id="noiseVal"></output></label><input id="noise" type="range" min="0" max="10" step=".5" value="0"></div>
+<div class="control"><label for="limit">Actuator limit (± N) <output id="limitVal"></output></label><input id="limit" type="range" min="5" max="100" step="1" value="100"></div>
+<div class="checkrow"><label for="antiWindup">Enable anti-windup</label><input type="checkbox" id="antiWindup" checked></div></section>
+<p class="hint">For a fair comparison, change one parameter at a time. Selected experiments automatically disable irrelevant PID terms.</p></aside>
+<section class="content">
+<div class="intro"><strong id="experimentTitle">PID response · Mass–spring–damper</strong><p id="experimentDesc">The controller calculates force from position error. The plant responds, and its measured position is fed back to the controller.</p></div>
+<div class="metrics">
+<div class="panel metric"><div class="label">Rise time</div><div class="value" id="rise">— <span class="unit">s</span></div></div>
+<div class="panel metric"><div class="label">Overshoot</div><div class="value" id="overshoot">— <span class="unit">%</span></div></div>
+<div class="panel metric"><div class="label">Settling time</div><div class="value" id="settling">— <span class="unit">s</span></div></div>
+<div class="panel metric"><div class="label">Steady-state error</div><div class="value" id="sse">— <span class="unit">m</span></div></div></div>
+<div class="chartgrid">
+<article class="panel chartcard"><div class="charthead"><h3>Position vs time</h3><span>Actual position & target</span></div><div class="chartbox"><canvas id="positionChart"></canvas></div></article>
+<article class="panel chartcard"><div class="charthead"><h3>Tracking error vs time</h3><span>Target − measured position</span></div><div class="chartbox"><canvas id="errorChart"></canvas></div></article>
+<article class="panel chartcard"><div class="charthead"><h3>Control effort vs time</h3><span>Applied actuator force (N)</span></div><div class="chartbox"><canvas id="forceChart"></canvas></div></article>
+<article class="panel chartcard"><div class="charthead"><h3>Velocity vs time</h3><span>Plant velocity (m/s)</span></div><div class="chartbox"><canvas id="velocityChart"></canvas></div></article>
+<article class="panel chartcard"><div class="charthead"><h3>PID contribution vs time</h3><span>P, I and D terms</span></div><div class="chartbox"><canvas id="termsChart"></canvas></div></article>
+<article class="panel chartcard"><div class="charthead"><h3>Sensor measurement</h3><span>Actual vs measured position</span></div><div class="chartbox"><canvas id="sensorChart"></canvas></div></article></div>
+<div class="panel conclusion"><h2>What does this result tell us? <span class="badge">Auto interpretation</span></h2><ul id="conclusions"><li>Run a simulation to generate observations and conclusions.</li></ul><p class="note" id="methodNote">Metrics use a 10–90% rise-time definition and a ±2% settling band. Results are numerical simulation outputs, not physical measurements.</p></div>
+</section></div><div class="footer">PID Control Lab · Educational simulation · Change the gains and observe the system before drawing conclusions.</div>
+</main>
+<script>
+const $=id=>document.getElementById(id), chartRefs={};
+const defaults={kp:50,ki:20,kd:5,setpoint:1,duration:8,dt:.002,mass:1,damping:10,spring:20,noise:0,limit:100};
+const info={
+open_loop:["01 - Open-loop response","A constant 20 N force is applied to the mass–spring–damper plant without measuring its position or correcting the error."],
+p:["02 - P-only response","Only proportional control is active. Increasing Kp generally speeds up response, but finite P gain leaves steady-state error."],
+pi:["03 - PI response","Integral action accumulates error and can remove steady-state error. Too much Ki can increase overshoot and slow recovery."],
+pid:["04 - PID response · Mass–spring–damper","All three terms are active. P responds to present error, I accumulates past error, and D responds to how quickly error changes."],
+pd:["05 - PD response","Derivative action adds damping-like behaviour and can reduce overshoot. It is sensitive to noisy measurements."],
+saturation:["06 - Actuator saturation + anti-windup","The actuator force is limited. Anti-windup prevents the integral term from accumulating further when that would push the actuator deeper into saturation."],
+noise:["07 - Position sensor noise","The plant state is unchanged by sensor noise. Noise is added to the position measurement used by the controller."],
+derivative_kick:["08 - Derivative kick · Sudden setpoint change","The setpoint changes from 0.5 m to the selected target at 1 second. Derivative-on-error produces a sharp derivative response to this step."],
+slow_update:["09 - Slow controller update frequency","The plant physics continues at the selected time step, while the PID controller updates every 10 physics steps. The last force is held between updates."],
+zn:["10 - Ziegler–Nichols · Black-box plant","The third-order plant is treated as a black box. The dashboard sweeps P gain, estimates sustained oscillation gain and period, then computes classic ZN PID gains."]
+};
+function syncLabels(){const u={kp:"",ki:"",kd:"",setpoint:" m",duration:" s",dt:" s",mass:" kg",damping:" N·s/m",spring:" N/m",noise:" mm",limit:" N"};Object.keys(defaults).forEach(k=>$(k+"Val").textContent=Number($(k).value).toFixed(["dt","mass","damping","kd","noise"].includes(k)?3:2)+u[k]);}
+Object.keys(defaults).forEach(k=>$(k).addEventListener("input",syncLabels));syncLabels();
+function chart(id,y){return new Chart($(id),{type:"line",data:{datasets:[]},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom",labels:{boxWidth:12,usePointStyle:true,font:{size:11}}}},scales:{x:{type:"linear",title:{display:true,text:"Time (s)"},ticks:{maxTicksLimit:7}},y:{title:{display:true,text:y},ticks:{maxTicksLimit:6}}}}});}
+function init(){chartRefs.pos=chart("positionChart","Position (m)");chartRefs.err=chart("errorChart","Error (m)");chartRefs.force=chart("forceChart","Force (N)");chartRefs.vel=chart("velocityChart","Velocity (m/s)");chartRefs.terms=chart("termsChart","PID contribution");chartRefs.sensor=chart("sensorChart","Position (m)");}
+function series(label,rows,key,dash=false){return {label,data:rows.map(r=>({x:r.t,y:r[key]})),borderWidth:2,pointRadius:0,tension:.1,borderDash:dash?[6,4]:[]};}
+function put(c,ds){c.data.datasets=ds;c.update("none");}
+function getGains(){let g={kp:+$("kp").value,ki:+$("ki").value,kd:+$("kd").value},m=$("experiment").value;if(m==="p")g.ki=g.kd=0;if(m==="pi")g.kd=0;if(m==="pd")g.ki=0;return g;}
+function config(){return {setpoint:+$("setpoint").value,duration:+$("duration").value,dt:+$("dt").value,mass:+$("mass").value,damping:+$("damping").value,spring:+$("spring").value,noise:+$("noise").value,limit:+$("limit").value,anti:$("antiWindup").checked};}
+function simulateMass(c,g){
+ let x=0,v=0,I=0,prev=null,rows=[],n=Math.ceil(c.duration/c.dt);
+ for(let i=0;i<=n;i++){let t=i*c.dt,meas=x+c.noise/1000*(2*Math.random()-1),e=c.setpoint-meas,p=g.kp*e,d=prev===null?0:g.kd*(e-prev)/c.dt,ci=I+e*c.dt,rawc=p+g.ki*ci+d,push=(rawc>c.limit&&e>0)||(rawc< -c.limit&&e<0);if(!(c.anti&&push))I=ci;let it=g.ki*I,raw=p+it+d,u=Math.max(-c.limit,Math.min(c.limit,raw));rows.push({t,x,v,meas,e,p,it,d,raw,u});prev=e;let a=(u-c.damping*v-c.spring*x)/c.mass;v+=a*c.dt;x+=v*c.dt;}return rows;
+}
+function simulateBlackBox(c,g){
+ // Hidden plant dynamics: y''' + 3y'' + 3y' + y = u. The tuner uses only I/O.
+ let y=0,yd=0,ydd=0,I=0,prev=null,rows=[],n=Math.ceil(c.duration/c.dt);
+ const f=(s,u)=>[s[1],s[2],u-3*s[2]-3*s[1]-s[0]];
+ const rk=(s,u,h)=>{let add=(a,b,k)=>a.map((v,i)=>v+k*b[i]),k1=f(s,u),k2=f(add(s,k1,h/2),u),k3=f(add(s,k2,h/2),u),k4=f(add(s,k3,h),u);return s.map((v,i)=>v+h*(k1[i]+2*k2[i]+2*k3[i]+k4[i])/6);};
+ for(let i=0;i<=n;i++){let t=i*c.dt,meas=y+c.noise/1000*(2*Math.random()-1),e=c.setpoint-meas,p=g.kp*e,d=prev===null?0:g.kd*(e-prev)/c.dt,ci=I+e*c.dt,rawc=p+g.ki*ci+d,push=(rawc>c.limit&&e>0)||(rawc< -c.limit&&e<0);if(!(c.anti&&push))I=ci;let it=g.ki*I,raw=p+it+d,u=Math.max(-c.limit,Math.min(c.limit,raw));rows.push({t,x:y,v:yd,meas,e,p,it,d,raw,u});prev=e;[y,yd,ydd]=rk([y,yd,ydd],u,c.dt);}return rows;
+}
+function peaks(rows){let tail=rows.slice(Math.floor(rows.length*.5)),out=[];for(let i=1;i<tail.length-1;i++)if(tail[i].x>tail[i-1].x&&tail[i].x>=tail[i+1].x)out.push(tail[i]);return out;}
+function calcMetrics(r,target){let xs=r.map(a=>a.x),ts=r.map(a=>a.t),last=r[r.length-1],i10=xs.findIndex(x=>x>=.1*target),i90=xs.findIndex(x=>x>=.9*target),rise=i10>=0&&i90>=i10?ts[i90]-ts[i10]:NaN,over=Math.max(0,(Math.max(...xs)-target)/Math.max(Math.abs(target),1e-9)*100),band=.02*Math.max(Math.abs(target),1e-9),settle=NaN;for(let i=0;i<xs.length;i++)if(xs.slice(i).every(x=>Math.abs(x-target)<=band)){settle=ts[i];break;}return {rise,over,settle,sse:Math.abs(target-last.x)};}
+function showConclusions(r,m,g,c,mode){let a=[];a.push(m.over<1?"The response reaches the target with little or no overshoot.":"The response overshoots the target by "+m.over.toFixed(1)+"%. Consider reducing Kp or Ki, or tuning Kd.");a.push(m.sse<.01?"Steady-state error is small ("+m.sse.toFixed(4)+" m).":"A residual steady-state error remains ("+m.sse.toFixed(4)+" m). Gradually increasing Ki may reduce it.");if(g.kd>0&&c.noise>0)a.push("Derivative action is active with noisy measurements; noise can create control-force fluctuations.");if(c.limit<99)a.push("The actuator is limited to ±"+c.limit+" N. Anti-windup is "+(c.anti?"enabled":"disabled")+".");if(mode==="zn")a.push("The black-box sweep estimates Ku and Tu; classic ZN gains are initial tuning estimates, not guaranteed optimum values.");a.push(Number.isFinite(m.settle)?"The response enters and remains within the ±2% settling band at about "+m.settle.toFixed(3)+" s.":"The response did not remain within the ±2% settling band during this simulation.");a.push("Gains used: Kp="+g.kp.toFixed(2)+", Ki="+g.ki.toFixed(2)+", Kd="+g.kd.toFixed(2)+". Change one gain at a time to isolate its effect.");$("conclusions").innerHTML=a.map(x=>"<li>"+x+"</li>").join("");}
+function render(r,c,g,mode){put(chartRefs.pos,[series("Actual position",r,"x"),{label:"Target",data:r.map(q=>({x:q.t,y:c.setpoint})),borderDash:[6,4],borderWidth:2,pointRadius:0}]);put(chartRefs.err,[series("Tracking error",r,"e")]);put(chartRefs.force,[series("Applied force",r,"u"),series("Raw requested force",r,"raw",true)]);put(chartRefs.vel,[series("Velocity",r,"v")]);put(chartRefs.terms,[series("P",r,"p"),series("I",r,"it"),series("D",r,"d")]);put(chartRefs.sensor,[series("Actual position",r,"x"),series("Measured position",r,"meas",true)]);let m=calcMetrics(r,c.setpoint);$("rise").innerHTML=(Number.isFinite(m.rise)?m.rise.toFixed(3):"N/A")+' <span class="unit">s</span>';$("overshoot").innerHTML=m.over.toFixed(2)+' <span class="unit">%</span>';$("settling").innerHTML=(Number.isFinite(m.settle)?m.settle.toFixed(3):"N/A")+' <span class="unit">s</span>';$("sse").innerHTML=m.sse.toFixed(5)+' <span class="unit">m</span>';showConclusions(r,m,g,c,mode);}
+async function run(){
+ const mode=$("experiment").value;
+ const payload={
+   experiment:mode,
+   kp:+$("kp").value, ki:+$("ki").value, kd:+$("kd").value,
+   setpoint:+$("setpoint").value, duration:+$("duration").value, dt:+$("dt").value,
+   mass:+$("mass").value, damping:+$("damping").value, spring:+$("spring").value,
+   noise_mm:+$("noise").value, actuator_limit:+$("limit").value,
+   anti_windup:$("antiWindup").checked
+ };
+ $("experimentTitle").textContent=info[mode][0];
+ $("experimentDesc").textContent=info[mode][1];
+ $("status").textContent="Running Python simulation...";
+ $("runBtn").disabled=true;
+ try{
+   const response=await fetch("/api/simulate",{
+     method:"POST",headers:{"Content-Type":"application/json"},
+     body:JSON.stringify(payload)
+   });
+   const result=await response.json();
+   if(!response.ok) throw new Error(result.error||"Backend simulation failed.");
+   const rows=result.samples;
+   const gains=result.gains;
+   const c={setpoint:payload.setpoint,noise:payload.noise_mm,limit:payload.actuator_limit,anti:payload.anti_windup};
+   render(rows,c,gains,mode);
+   $("methodNote").textContent=result.note||"Results generated by your Python simulation modules.";
+   $("status").textContent="Python backend · "+rows.length.toLocaleString()+" samples";
+ }catch(err){
+   $("status").textContent="Backend connection error";
+   $("conclusions").innerHTML="<li><strong>Could not run Python simulation:</strong> "+String(err.message).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))+"</li><li>Make sure Flask is running and open this dashboard through http://127.0.0.1:5000/ (not by double-clicking the HTML file).</li>";
+ }finally{$("runBtn").disabled=false;}
+}
+$("runBtn").addEventListener("click",run);$("resetBtn").addEventListener("click",()=>{Object.keys(defaults).forEach(k=>$(k).value=defaults[k]);$("experiment").value="pid";$("antiWindup").checked=true;syncLabels();run();});$("experiment").addEventListener("change",()=>{let m=$("experiment").value;$("experimentTitle").textContent=info[m][0];$("experimentDesc").textContent=info[m][1];});init();run();
+</script>
+</body></html>
